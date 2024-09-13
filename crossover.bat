@@ -33,7 +33,8 @@ if '%errorlevel%' NEQ '0' (
 
 :: Stylistic section of the program, turns echo off so these commands do not appear in CMD
 @echo off
-title IPv4 Copier Cross-Over by Zach
+set version=3.1.0
+title IPv4 Copier Cross-Over by Zach (v%version%)
 setlocal EnableExtensions EnableDelayedExpansion
 color B
 echo.
@@ -72,7 +73,7 @@ set ip=0
 	echo   5) Check for updates
 	echo   6) Submit bug report or request new feature
 	echo:
-	set /p "option=Enter 1-5: " || set "option=2"
+	set /p "option=Enter 1-6: " || set "option=3"
 	echo:
 	
 	:: Get-NetConnectionProfile -InterfaceAlias "Network" | Set-NetConnectionProfile -NetworkCategory Private -Confirm:$false -PassThru
@@ -89,15 +90,23 @@ set ip=0
 		goto :printErrorCodes
 		exit
 	) else if %option%==5 (
-		call :setDHCP_Error "[FINISH_UPDATE_CHECK_SECTION"
+		echo Current version is %version%
+		set /p "update=Press Enter to Check for Updates"
+		start "" https://github.com/zachreid-96/Cross-Over
 		exit
 	) else if %option%==6 (
-		call :setDHCP_Error "[FINISH_FEATURE_BUG_SECTION"
+		echo To submit a bug report or request a new feature be added
+		set /p "bugFeature=Please visit the following website and press 'New issue' (green button)"
+		start "" https://github.com/zachreid-96/Cross-Over/issues
 		exit
 	) else (
 		call :setDHCP_Error "[MENU_INVALID_SELECTION_ERROR]"
 		exit
 	)
+
+:: Here is the list of pre-programmed error codes
+:: This will be output as option 4 and can help identify what went wrong
+:: Examples are also provided
 
 :printErrorCodes
 	
@@ -107,37 +116,46 @@ set ip=0
 	
 	echo ERROR_CODE: IP_NULL_ERROR
 	echo DESCRIPTION: The IP address was entered as null.
+	echo EXAMPLE: 0.0.0.0
 	echo:
 	echo ERROR_CODE: IP_MISSING_OCTETS_ERROR
 	echo DESCRIPTION: The IP address is missing one or more octets.
+	echo EXAMPLE: 192.168.1. or 192..1.25
 	echo:
 	echo ERROR_CODE: IP_TOO_MANY_OCTETS_ERROR
 	echo DESCRIPTION: The IP address has too many octets.
+	echo EXAMPLE: 19.2.168.1.25
 	echo:
 	echo ERROR_CODE: SUBNET_MISSING_OCTETS_ERROR
 	echo DESCRIPTION: The SUBNET address is missing one or more octets.
+	echo EXAMPLE: 255.255.0
 	echo:
 	echo ERROR_CODE: SUBNET_TOO_MANY_OCTETS_ERROR
 	echo DESCRIPTION: The SUBNET address has too many octets.
+	echo EXAMPLE: 255.255.255. or 255.25.5.255.0
 	echo:
 	echo ERROR_CODE: SUBNET_NULL_ERROR
 	echo DESCRIPTION: The SUBNET address was entered as null.
+	echo EXAMPLE: 0.0.0.0
 	echo:
 	echo ERROR_CODE: IP_INVALID_OCTET_ERROR
 	echo DESCRIPTION: The IP address contains an invalid octet.
+	echo EXAMPLE: 192.1680.1.25
 	echo:
 	echo ERROR_CODE: SUBNET_INVALID_OCTET_ERROR
 	echo DESCRIPTION: The SUBNET address contains an invalid octet.
+	echo EXAMPLE: 255.255.2550.0
 	echo:
 	echo ERROR_CODE: MENU_INVALID_SELECTION_ERROR
 	echo DESCRIPTION: An invalid menu selection was picked.
-	echo:
-	echo ERROR_CODE: ADMIN_RIGHTS_NOT_GRANTED
-	echo DESCRIPTION: This script was not run with Admin Rights.
+	echo EXAMPLE: Any option outside of 1-6
 	echo:
 	call :setDHCP_Error "[DISPLAYED_ERROR_CODE_LIST]"
 
 :: This function asks the user for the copier IP then sends it to :splitIP
+:: If no input is entered a default entry of 0.0.0.0 is entered
+:: This will then set to DHCP and output an error code before exiting intentionally
+
 :getIP
 	echo Please enter Copier IP in following format 10.120.1.68
 	echo:
@@ -153,7 +171,11 @@ set ip=0
 	if not "%ip%"=="0.0.0.0" (
 		call :splitIP []
 	)
-	
+
+:: Similar to :getIP function call
+:: This will ask the user for the IP and Subnet desired
+:: If no input is entered for either it will set to DHCP and output and error code
+
 :getIP_SUBNET
 	echo Please enter the Copier IP in the following format 10.120.1.68
 	echo:
@@ -182,6 +204,7 @@ set ip=0
 :: This also tediously loops through the IP entered and splits 192.168.1.5 into 192 168 1 5
 :: 		Tedious because Batch doesn't natively support splitting by multiple "."
 :: Once it hits a "" or undefined character it will go to :validateIP
+
 :splitIP
 	set g=
 	for /l %%i in (0,1,20) do (
@@ -202,7 +225,11 @@ set ip=0
 			set IPArr[!pCount!]=!g!
 		)
 	)
-	
+
+:: The same as :splitIP but for the Subnet
+:: Will split the Subnet into its octets and move the program along
+:: If an octect size other than 3 (0-3) is detected, an error will be output
+
 :splitSUBNET
 	echo visited
 	set pCount=0
@@ -232,6 +259,7 @@ set ip=0
 :: This will also detect the last IP number and assign your Laptop IP x.x.x.25 if Copier IP is not x.x.x.25
 :: 		This will assign Laptop IP x.x.x.35 if Copier IP is x.x.x.25
 :: Trust the process here
+
 :validateIP
 	if !IPArr[3]!==25 (
 		set IPArr[3]=35
@@ -255,6 +283,8 @@ set ip=0
 	
 	goto :changeIP
 	exit
+
+:: Same as :validateIP but for both IP and SUBNET entered by the user
 
 :validateIP_SUBNET
 
@@ -299,6 +329,8 @@ set ip=0
 
 :: This actually sets the IPv4 address of your Laptop and open the Copier EWS
 :: Probably best to reset settings back to DHCP then set for entered IP
+:: This will 'build' the IP and SUBNET (entered or default) and use netsh to assign them
+
 :changeIP
 	set newIp=%IPArr[0]%.%IPArr[1]%.%IPArr[2]%.%IPArr[3]%
 	set newSUBNET=!SUBNETArr[0]!.!SUBNETArr[1]!.!SUBNETArr[2]!.!SUBNETArr[3]!
@@ -310,6 +342,8 @@ set ip=0
 	start "" https://%ip%
 	exit
 
+:: This sets the ethernet settings back to DHCP and outputs a passed error code
+
 :setDHCP_Error
 	netsh interface ipv4 set address name="Ethernet" dhcp >nul 2>&1
 	netsh interface ipv4 set subnet name="Ethernet" dhcp >nul 2>&1
@@ -318,6 +352,8 @@ set ip=0
 	exit
 	
 :: This sets IPv4 address and SUBNET back to DHCP
+:: This will NOT output an error code and is a direct result of option 3 in MENU
+
 :setDHCP
 	netsh interface ipv4 set address name="Ethernet" dhcp >nul 2>&1
 	netsh interface ipv4 set subnet name="Ethernet" dhcp >nul 2>&1
