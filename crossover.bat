@@ -228,7 +228,7 @@ set ip=0
 
 :: The same as :splitIP but for the Subnet
 :: Will split the Subnet into its octets and move the program along
-:: If an octect size other than 3 (0-3) is detected, an error will be output
+:: If an octet size other than 3 (0-3) is detected, an error will be output
 
 :splitSUBNET
 	echo visited
