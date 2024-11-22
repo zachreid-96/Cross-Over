@@ -18,6 +18,6 @@ This script has a menu that gets outputed for the user. Below is a description o
 6) This will bring the user to the Github issues page of this project to submit an issue ticket for a bug OR request a new feature.
 
 
-I put it in the comments of the script, but I will reiterate it here. I thank Ben Gripka and dbenham over at https://stackoverflow.com/questions/1894967/how-to-request-administrator-access-inside-a-batch-file for the code between the :: ------------------------------------- lines. I am not smart enough to come up with prompting for the Admin UAC on my own.
+I put it in the comments of the script, but I will reiterate it here. I thank Ben Gripka and dbenham over at https://stackoverflow.com/questions/1894967/how-to-request-administrator-access-inside-a-batch-file for the code between the :: ------------------------------------- lines. I am not skilled enough to come up with prompting for the Admin UAC on my own.
 
 Feel free to use this as needed.
