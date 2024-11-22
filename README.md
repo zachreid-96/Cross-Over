@@ -3,6 +3,8 @@ A simple cross-over batch script for Copiers, Printers, Switches and the like.
 
 This project started off because I found that manually changing the Ethernet adapter settings a little tedious. I would often accidentally type in the copier's IP address instead of changing the last octect, or I would forget the Subnet. I wouldn't realize I made a mistake until I had closed all the settings and tried to open the copier's web page. Which failed. I would then waste more time opening the settings again and redoing them.
 
+This script was developed for Windows 10/11 machines. Will not work on other OS's and support for Windows 8.1 and prior, Mac, or any Linux distro will not be added.
+
 I find using this script easy and pretty fast. I built in some checks to make sure IP/Subnet octets are within a valid range (0-255). I then match the copiers octets, changing the last octet to xxx.xxx.xxx.25, and use that as the IP assignment for the laptop. Unless the copiers last octet is xxx.xxx.xxx.25, then the laptop will be xxx.xxx.xxx.35.
 
 This can be used for a handful of things, crossing over to copiers, printers, gateways, routers, switches, anything really that has a static IP assigned and allows data transfer between an ethernet cable.
