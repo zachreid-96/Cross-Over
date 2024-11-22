@@ -33,7 +33,7 @@ if '%errorlevel%' NEQ '0' (
 
 :: Stylistic section of the program, turns echo off so these commands do not appear in CMD
 @echo off
-set version=3.1.0
+set version=3.1.1
 title IPv4 Copier Cross-Over by Zach (v%version%)
 setlocal EnableExtensions EnableDelayedExpansion
 color B
@@ -70,8 +70,8 @@ set ip=0
 	echo   2) Change IP with custom SUBNET
 	echo   3) Revert Network Settings back to DHCP
 	echo   4) Troubleshoot script
-	echo   5) Check for updates
-	echo   6) Submit bug report or request new feature
+	:: echo   5) Check for updates
+	:: echo   6) Submit bug report or request new feature
 	echo:
 	set /p "option=Enter 1-6: " || set "option=3"
 	echo:
