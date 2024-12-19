@@ -357,7 +357,7 @@ set event_log_skip=0
 	
 	:confirm_ping
 		<nul set /p "=Crossing Over Now"
-       set attempt=0
+         set attempt=0
 		:confirm_ping_loop
 			<nul set /p "=."
 			ping newIp -n 1 -w 1000 >nul 2>&1
