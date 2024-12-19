@@ -356,8 +356,8 @@ set event_log_skip=0
 	netsh interface ipv4 set address name="Ethernet" static %newIp% %newSUBNET% >nul 2>&1
 	
 	:confirm_ping
+		set attempt=0
 		<nul set /p "=Crossing Over Now"
-        set attempt=0
 		:confirm_ping_loop
 			<nul set /p "=."
 			ping newIp -n 1 -w 1000 >nul 2>&1
@@ -372,11 +372,11 @@ set event_log_skip=0
 					exit
 				)
 			) else (
-        set attempt=attempt+1
-        if %attempt%==25 (
-          call :setDHCP_Error "[MAX_PING_ATTEMPT_ERROR]"
-		      exit
-        )
+        			set /a attemp+=1
+        			if %attempt%==25 (
+          				call :setDHCP_Error "[MAX_PING_ATTEMPT_ERROR]"
+		      			exit
+        			)
 				goto :confirm_ping_loop
 			)
 			
