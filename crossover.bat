@@ -33,7 +33,7 @@ if '%errorlevel%' NEQ '0' (
 
 :: Stylistic section of the program, turns echo off so these commands do not appear in CMD
 @echo off
-set version=3.1.1
+set version=3.1.2
 title IPv4 Copier Cross-Over by Zach (v%version%)
 setlocal EnableExtensions EnableDelayedExpansion
 color B
@@ -59,6 +59,8 @@ set SUBNETArr[3]=0
 
 set /a pCount=0
 set ip=0
+set event_log=0
+set event_log_skip=0
 
 :: The only function that doesn't need called
 :: This prints the option menu and calls the correct function given a choice
@@ -70,8 +72,10 @@ set ip=0
 	echo   2) Change IP with custom SUBNET
 	echo   3) Revert Network Settings back to DHCP
 	echo   4) Troubleshoot script
-	:: echo   5) Check for updates
-	:: echo   6) Submit bug report or request new feature
+	echo   5) Cross Over and Print Event Log
+	echo   6) Print Event Log (already crossed over)
+	:: echo   6) Check for updates
+	:: echo   7) Submit bug report or request new feature
 	echo:
 	set /p "option=Enter 1-6: " || set "option=3"
 	echo:
@@ -90,14 +94,15 @@ set ip=0
 		goto :printErrorCodes
 		exit
 	) else if %option%==5 (
+		set event_log=1
+		goto :getIP
+	) else if %option%==6 (
+		set event_log_skip=1
+		goto :getIP
+	) else if %option%==99 (
 		echo Current version is %version%
 		set /p "update=Press Enter to Check for Updates"
 		start "" https://github.com/zachreid-96/Cross-Over
-		exit
-	) else if %option%==6 (
-		echo To submit a bug report or request a new feature be added
-		set /p "bugFeature=Please visit the following website and press 'New issue' (green button)"
-		start "" https://github.com/zachreid-96/Cross-Over/issues
 		exit
 	) else (
 		call :setDHCP_Error "[MENU_INVALID_SELECTION_ERROR]"
@@ -149,6 +154,10 @@ set ip=0
 	echo ERROR_CODE: MENU_INVALID_SELECTION_ERROR
 	echo DESCRIPTION: An invalid menu selection was picked.
 	echo EXAMPLE: Any option outside of 1-6
+	echo:
+	echo ERROR_CODE: LPR_NOT_ENABLED_ERROR
+	echo DESCRIPTION: LPR is not enabled.
+	echo Please enable LPR and run again.
 	echo:
 	call :setDHCP_Error "[DISPLAYED_ERROR_CODE_LIST]"
 
@@ -215,7 +224,11 @@ set ip=0
 		if "!t!"=="" (
 			if !pCount! neq 3 call :setDHCP_Error "[IP_MISSING_OCTET_ERROR]"
 			if %~1 neq [] goto :splitSUBNET
-			goto :validateIP
+			if %event_log_skip%==1 (
+				goto :print_event_log
+			) else (
+				goto :validateIP
+			)
 		) else if "!t!"=="." (
 			::set IPArr[!pCount!]=!g!
 			set /a pCount=pCount+1
@@ -337,9 +350,72 @@ set ip=0
 	netsh interface ipv4 set address name="Ethernet" dhcp >nul 2>&1
 	netsh interface ipv4 set subnet name="Ethernet" dhcp >nul 2>&1
 	netsh interface ipv4 set address name="Ethernet" static %newIp% %newSUBNET% >nul 2>&1
-	echo Cross-over ready. Press any key to exit and open EWS...
+	
+	:confirm_ping
+		<nul set /p "=Crossing Over Now"
+		:confirm_ping_loop
+			<nul set /p "=."
+			ping newIp -n 1 -w 1000 >nul 2>&1
+			if %ERRORLEVEL%==0 (
+				echo.
+				echo.
+				if %event_log%==0 (
+					goto :cross_over_ready
+					exit
+				) else (
+					goto :print_event_log
+					exit
+				)
+			) else (
+				goto :confirm_ping_loop
+			)
+			
+	:cross_over_ready
+		echo Cross-over ready. Press any key to exit and open EWS...
+		pause>nul | echo:
+		start "" https://%ip%
+		exit
+	
+
+:: This will print out a Kyocera Event Log on compatible devices
+
+:print_event_log
+	
+	set "file_path=%USERPROFILE%\Documents\event_log.txt"
+	
+	if not exist "%file_path%" (
+		echo ^!R^!KCFG"ELOG";EXIT;>"%file_path%"
+	)
+	
+	where lpr >nul 2>&1
+	
+	if %ERRORLEVEL%==1 (
+		echo.
+		echo LPR is not enabled, please enable LPR...
+		echo   Turn Windows Features On or Off ^>
+		echo   Print and Document Services ^>
+		echo   LPR Port Monitor ^>
+		echo   Restart Device
+		call :exit_Error "[LPR_NOT_ENABLED_ERROR]"
+	) else (
+		lpr -S %IPArr[0]%.%IPArr[1]%.%IPArr[2]%.%IPArr[3]% -P 9100 "%file_path%"
+		<nul set /p "=Sending Event Log Command"
+			for /l %%i in (1,1,4) do (
+				<nul set /p "=."
+				timeout /t 1 >nul
+			)
+			echo .
+			timeout /t 1 >nul
+	)
+	
+	echo Event Log should have been printed. Press any key to exit...
 	pause>nul | echo:
-	start "" https://%ip%
+	exit
+
+:exit_Error
+	echo.
+	echo %~1 Press any key to exit...
+	pause>nul | echo.
 	exit
 
 :: This sets the ethernet settings back to DHCP and outputs a passed error code
@@ -357,6 +433,15 @@ set ip=0
 :setDHCP
 	netsh interface ipv4 set address name="Ethernet" dhcp >nul 2>&1
 	netsh interface ipv4 set subnet name="Ethernet" dhcp >nul 2>&1
+	
+	<nul set /p "=Returning to DHCP"
+		for /l %%i in (1,1,4) do (
+			<nul set /p "=."
+			timeout /t 1 >nul
+		)
+		echo .
+		timeout /t 1 >nul
+	
 	echo Set IPv4 Settings back to DHCP. Press any key to exit...
 	pause>nul | echo:
 	exit
