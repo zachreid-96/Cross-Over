@@ -159,6 +159,10 @@ set event_log_skip=0
 	echo DESCRIPTION: LPR is not enabled.
 	echo Please enable LPR and run again.
 	echo:
+	echo ERROR_CODE: MAX_PING_ATTEMPT_ERROR
+	echo DESCRIPTION: Max ping attempt of 25 was reached when attempting to cross over.
+	echo Please double check IP and run again, set to DHCP.
+	echo:
 	call :setDHCP_Error "[DISPLAYED_ERROR_CODE_LIST]"
 
 :: This function asks the user for the copier IP then sends it to :splitIP
@@ -353,6 +357,7 @@ set event_log_skip=0
 	
 	:confirm_ping
 		<nul set /p "=Crossing Over Now"
+    set attempt=0
 		:confirm_ping_loop
 			<nul set /p "=."
 			ping newIp -n 1 -w 1000 >nul 2>&1
@@ -367,6 +372,11 @@ set event_log_skip=0
 					exit
 				)
 			) else (
+        set attempt=attempt+1
+        if %attempt%==25 (
+          call :setDHCP_Error "[MAX_PING_ATTEMPT_ERROR]"
+		      exit
+        )
 				goto :confirm_ping_loop
 			)
 			
