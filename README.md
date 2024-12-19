@@ -9,7 +9,7 @@ I find using this script easy and pretty fast. I built in some checks to make su
 
 This can be used for a handful of things, crossing over to copiers, printers, gateways, routers, switches, anything really that has a static IP assigned and allows data transfer between an ethernet cable.
 
-Before displaying a successful cross over message, a ping timeout will occur to ensure network is active on both PC and machine. In case of bad IP entered, a max of 15 tries is alloted and results in a failed state.
+Before displaying a successful cross over message, a ping timeout will occur to ensure network is active on both PC and machine. In case of bad IP entered, a max of 25 tries is alloted and results in a failed state.
 
 This script has a menu that gets outputed for the user. Below is a description of what each option does.
 1) Prompts the user for the copier's IP address and will change the IPv4 Ethernet assignments to allow cross-over to a copier. This option utilizes the default subnet of 255.255.255.0
