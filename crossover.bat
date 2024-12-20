@@ -403,7 +403,7 @@ set event_log_skip=0
 	:cross_over_ready
 		echo Cross-over ready. Press any key to exit and open EWS...
 		pause>nul | echo.
-		start "" https://%newIp%
+		start "" https://%ip%
 		exit
 	
 
