@@ -33,7 +33,7 @@ if '%errorlevel%' NEQ '0' (
 
 :: Stylistic section of the program, turns echo off so these commands do not appear in CMD
 @echo off
-set version=3.1.2
+set version=3.1.4
 title IPv4 Copier Cross-Over by Zach (v%version%)
 setlocal EnableExtensions EnableDelayedExpansion
 color B
@@ -41,29 +41,37 @@ echo.
 
 :: Outputs general information about the program and that this needs Admin rights to change IP successfully
 
-echo:
+echo.
 echo This batch file has simple checks to ensure a proper IP address is entered
 echo After an IP address is obtained, if valid, it will set your IP address
 echo   Then the script will close and open the Copier EWS (Embedded Web Server)
-echo:
+echo.
 
 :: Here are some variables that need accessed in other functions, just stored here in case
+:: IPArr - used to split the IP into its octets in :splitIP, validate octets in :validateIP, and create newIP in :changeIP and :print_event_log
 set NL=^
-echo:
+echo.
 set IPArr=[]
 
+:: Initializes subnet array in case of manipulation
 set SUBNETArr[0]=255
 set SUBNETArr[1]=255
 set SUBNETArr[2]=255
 set SUBNETArr[3]=0
 
+:: Initializes variables that will be used
+:: pCount - used to count the periods in :splitIP
+:: ip - used to store user entered IP in :getIP and :getIP_SUBNET
+:: event_log - used to bypass end of script and execute :print_event_log
+:: event_log_skip - used to bypass IP verification and print event log in :print_event_log (assumes already crossed-over)
 set /a pCount=0
 set ip=0
 set event_log=0
 set event_log_skip=0
 
 :: The only function that doesn't need called
-:: This prints the option menu and calls the correct function given a choice
+:: This prints the option menu and calls the correct function given user choice
+:: Option 99 is not output but is a valid choice to check for updates
 
 :printMenu
 	echo This program has a few options...
@@ -74,15 +82,13 @@ set event_log_skip=0
 	echo   4) Troubleshoot script
 	echo   5) Cross Over and Print Event Log
 	echo   6) Print Event Log (already crossed over)
-	:: echo   6) Check for updates
-	:: echo   7) Submit bug report or request new feature
-	echo:
+	:: echo   99) Check for updates
+	echo.
 	set /p "option=Enter 1-6: " || set "option=3"
-	echo:
+	echo.
 	
-	:: Get-NetConnectionProfile -InterfaceAlias "Network" | Set-NetConnectionProfile -NetworkCategory Private -Confirm:$false -PassThru
-	:: Try the above command to set connection to private instead of public
-	:: might not be an issue but will need testing
+	:: If invalid choice, will set back to DHCP via :setDHCP_Error and display error code
+	:: If valid choice, will call appropriate function
 	
 	if %option%==1 (
 		goto :getIP
@@ -115,55 +121,61 @@ set event_log_skip=0
 
 :printErrorCodes
 	
-	echo:
+	echo.
 	echo Here is a list of the error codes and what they mean...
-	echo:
+	echo.
 	
 	echo ERROR_CODE: IP_NULL_ERROR
 	echo DESCRIPTION: The IP address was entered as null.
 	echo EXAMPLE: 0.0.0.0
-	echo:
+	echo.
 	echo ERROR_CODE: IP_MISSING_OCTETS_ERROR
 	echo DESCRIPTION: The IP address is missing one or more octets.
 	echo EXAMPLE: 192.168.1. or 192..1.25
-	echo:
+	echo.
 	echo ERROR_CODE: IP_TOO_MANY_OCTETS_ERROR
 	echo DESCRIPTION: The IP address has too many octets.
 	echo EXAMPLE: 19.2.168.1.25
-	echo:
+	echo.
 	echo ERROR_CODE: SUBNET_MISSING_OCTETS_ERROR
 	echo DESCRIPTION: The SUBNET address is missing one or more octets.
 	echo EXAMPLE: 255.255.0
-	echo:
+	echo.
 	echo ERROR_CODE: SUBNET_TOO_MANY_OCTETS_ERROR
 	echo DESCRIPTION: The SUBNET address has too many octets.
 	echo EXAMPLE: 255.255.255. or 255.25.5.255.0
-	echo:
+	echo.
 	echo ERROR_CODE: SUBNET_NULL_ERROR
 	echo DESCRIPTION: The SUBNET address was entered as null.
 	echo EXAMPLE: 0.0.0.0
-	echo:
+	echo.
 	echo ERROR_CODE: IP_INVALID_OCTET_ERROR
 	echo DESCRIPTION: The IP address contains an invalid octet.
 	echo EXAMPLE: 192.1680.1.25
-	echo:
+	echo.
 	echo ERROR_CODE: SUBNET_INVALID_OCTET_ERROR
 	echo DESCRIPTION: The SUBNET address contains an invalid octet.
 	echo EXAMPLE: 255.255.2550.0
-	echo:
+	echo.
 	echo ERROR_CODE: MENU_INVALID_SELECTION_ERROR
 	echo DESCRIPTION: An invalid menu selection was picked.
 	echo EXAMPLE: Any option outside of 1-6
-	echo:
+	echo.
 	echo ERROR_CODE: LPR_NOT_ENABLED_ERROR
 	echo DESCRIPTION: LPR is not enabled.
 	echo Please enable LPR and run again.
-	echo:
-	echo ERROR_CODE: MAX_PING_ATTEMPT_ERROR
+	echo.
+	echo ERROR_CODE: MAX_PING_TIMEOUT_ERROR
 	echo DESCRIPTION: Max ping attempt of 25 was reached when attempting to cross over.
 	echo Please double check IP and run again, set to DHCP.
-	echo:
-	call :setDHCP_Error "[DISPLAYED_ERROR_CODE_LIST]"
+	echo.
+	echo ERROR_CODE: LPR_NOT_ENABLED_ERROR
+	echo DESCRIPTION: LPR is enabled, but cannot ping machine.
+	echo Please double check network settings on copier/printer and on PC.
+	echo.
+	echo Press any key to exit...
+	pause>nul | echo.
+	exit
 
 :: This function asks the user for the copier IP then sends it to :splitIP
 :: If no input is entered a default entry of 0.0.0.0 is entered
@@ -171,10 +183,10 @@ set event_log_skip=0
 
 :getIP
 	echo Please enter Copier IP in following format 10.120.1.68
-	echo:
+	echo.
 	
 	set /p "ip=Enter IP Address: " || set "ip=0.0.0.0"
-	echo:
+	echo.
 	
 	:: If no IP is entered, a defualt 0.0.0.0 IP is set and the program will exit
 	if "%ip%"=="0.0.0.0" (
@@ -191,9 +203,9 @@ set event_log_skip=0
 
 :getIP_SUBNET
 	echo Please enter the Copier IP in the following format 10.120.1.68
-	echo:
+	echo.
 	set /p "ip=Enter IP Address: " || set "ip=0.0.0.0"
-	echo:
+	echo.
 	
 	if "%ip%"=="0.0.0.0" (
 		call :setDHCP_Error "[IP_NULL_INPUT_ERROR]"
@@ -201,9 +213,9 @@ set event_log_skip=0
 	)
 	
 	echo Please enter the Copier SUBNET in the following format 255.255.254.0
-	echo:
+	echo.
 	set /p "subnet=Enter SUBNET: " || set "subnet=0.0.0.0"
-	echo:
+	echo.
 	if "%subnet%"=="0.0.0.0" (
 		call :setDHCP_Error "[SUBNET_NULL_INPUT_ERROR]"
 		exit
@@ -228,7 +240,7 @@ set event_log_skip=0
 		if "!t!"=="" (
 			if !pCount! neq 3 call :setDHCP_Error "[IP_MISSING_OCTET_ERROR]"
 			if %~1 neq [] goto :splitSUBNET
-			if %event_log_skip%==1 (
+			if !event_log_skip!==1 (
 				goto :print_event_log
 			) else (
 				goto :validateIP
@@ -349,18 +361,23 @@ set event_log_skip=0
 :: This will 'build' the IP and SUBNET (entered or default) and use netsh to assign them
 
 :changeIP
-	set newIp=%IPArr[0]%.%IPArr[1]%.%IPArr[2]%.%IPArr[3]%
+	set newIp=!IPArr[0]!.!IPArr[1]!.!IPArr[2]!.!IPArr[3]!
 	set newSUBNET=!SUBNETArr[0]!.!SUBNETArr[1]!.!SUBNETArr[2]!.!SUBNETArr[3]!
 	netsh interface ipv4 set address name="Ethernet" dhcp >nul 2>&1
 	netsh interface ipv4 set subnet name="Ethernet" dhcp >nul 2>&1
 	netsh interface ipv4 set address name="Ethernet" static %newIp% %newSUBNET% >nul 2>&1
+	
+	:: A ping timeout loop
+	:: Will try pinging a max of 25 times, once a successful ping happens
+	:: :cross_over_ready is called if not printing an event_log
+	:: :print_event_log is called if printing an event_log
 	
 	:confirm_ping
 		set attempt=0
 		<nul set /p "=Crossing Over Now"
 		:confirm_ping_loop
 			<nul set /p "=."
-			ping newIp -n 1 -w 1000 >nul 2>&1
+			ping %newIp% -n 1 -w 1000 >nul 2>&1
 			if %ERRORLEVEL%==0 (
 				echo.
 				echo.
@@ -372,30 +389,44 @@ set event_log_skip=0
 					exit
 				)
 			) else (
-        			set /a attemp+=1
-        			if %attempt%==25 (
-          				call :setDHCP_Error "[MAX_PING_ATTEMPT_ERROR]"
-		      			exit
-        			)
+				set /a attemp+=1
+				if %attempt%==25 (
+					call :setDHCP_Error "[MAX_PING_ATTEMPT_ERROR]"
+					exit
+				)
 				goto :confirm_ping_loop
 			)
-			
+	
+	:: Outputs that user can close window by pressing anything
+	:: Opens the copiers EWS in defaulted browser
+	
 	:cross_over_ready
 		echo Cross-over ready. Press any key to exit and open EWS...
-		pause>nul | echo:
-		start "" https://%ip%
+		pause>nul | echo.
+		start "" https://%newIp%
 		exit
 	
 
 :: This will print out a Kyocera Event Log on compatible devices
+:: Will first check if the specified file "event_log.txt" exists
+::    If not, it creates it and the directory if needed
+:: Then checks if LPR (Line Printer Remote) is enabled on PC
+::    If not, gives instructions on how to enable
+:: Then uses the ping timeout loop to test if the copier/printer is reachable via ping
+::    If not, calls :exit_error and displays error that LPR is enabled but cannot Ping Device
+::    Mostly a check when event_log_skip=1 is used which bypasses first ping timeout loop
 
 :print_event_log
 	
+	set newIp=!IPArr[0]!.!IPArr[1]!.!IPArr[2]!.!IPArr[3]!
 	set "file_path=%USERPROFILE%\Documents\event_log.txt"
+	set "dir_path=%USERPROFILE%\Documents"
 	
 	if not exist "%file_path%" (
+		if not exist %dir_path% (
+			mkdir %dir_path%
+		)
 		echo ^!R^!KCFG"ELOG";EXIT;>"%file_path%"
-	)
 	
 	where lpr >nul 2>&1
 	
@@ -408,7 +439,15 @@ set event_log_skip=0
 		echo   Restart Device
 		call :exit_Error "[LPR_NOT_ENABLED_ERROR]"
 	) else (
-		lpr -S %IPArr[0]%.%IPArr[1]%.%IPArr[2]%.%IPArr[3]% -P 9100 "%file_path%"
+	
+		ping %newIP% -n 1 -w 1000 >nul 2>&1
+		
+		if %ERRORLEVEL%==1 (
+			call :exit_Error "[LPR_NO_PING_ERROR]"
+			exit
+		)
+		
+		lpr -S %newIp% -P 9100 "%file_path%"
 		<nul set /p "=Sending Event Log Command"
 			for /l %%i in (1,1,4) do (
 				<nul set /p "=."
@@ -418,8 +457,8 @@ set event_log_skip=0
 			timeout /t 1 >nul
 	)
 	
-	echo Event Log should have been printed. Press any key to exit...
-	pause>nul | echo:
+	echo Event Log should be printing. Press any key to exit...
+	pause>nul | echo.
 	exit
 
 :exit_Error
@@ -434,7 +473,7 @@ set event_log_skip=0
 	netsh interface ipv4 set address name="Ethernet" dhcp >nul 2>&1
 	netsh interface ipv4 set subnet name="Ethernet" dhcp >nul 2>&1
 	echo %~1 Press any key to exit...
-	pause>nul | echo:
+	pause>nul | echo.
 	exit
 	
 :: This sets IPv4 address and SUBNET back to DHCP
@@ -453,7 +492,7 @@ set event_log_skip=0
 		timeout /t 1 >nul
 	
 	echo Set IPv4 Settings back to DHCP. Press any key to exit...
-	pause>nul | echo:
+	pause>nul | echo.
 	exit
 
 exit
