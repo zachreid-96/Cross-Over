@@ -33,9 +33,10 @@ if '%errorlevel%' NEQ '0' (
 
 :: Stylistic section of the program, turns echo off so these commands do not appear in CMD
 @echo off
-set version=3.1.4
+set version=3.2.1
 title IPv4 Copier Cross-Over by Zach (v%version%)
-setlocal EnableExtensions EnableDelayedExpansion
+setlocal EnableExtensions
+setlocal EnableDelayedExpansion
 color B
 echo.
 
@@ -81,7 +82,6 @@ set event_log_skip=0
 	echo   3) Revert Network Settings back to DHCP
 	echo   4) Troubleshoot script
 	echo   5) Cross Over and Print Event Log
-	echo   6) Print Event Log (already crossed over)
 	:: echo   99) Check for updates
 	echo.
 	set /p "option=Enter 1-6: " || set "option=3"
@@ -100,20 +100,40 @@ set event_log_skip=0
 		goto :printErrorCodes
 		exit
 	) else if %option%==5 (
-		set event_log=1
-		goto :getIP
-	) else if %option%==6 (
-		set event_log_skip=1
-		goto :getIP
+		echo Please see Prescribe_Scripting_Tool on Github for event log and other Prescribe Commands
+        call :openGithub %option%
+        exit
 	) else if %option%==99 (
 		echo Current version is %version%
-		set /p "update=Press Enter to Check for Updates"
-		start "" https://github.com/zachreid-96/Cross-Over
+		call :openGithub %option%
 		exit
 	) else (
 		call :setDHCP_Error "[MENU_INVALID_SELECTION_ERROR]"
 		exit
 	)
+
+:openGithub
+    if "%~1"=="5" (
+        echo "Prescribe_Scripting_Tool"
+        set "tempSTR"="Check out the Prescribe_Scripting_Tool"
+        set "tempLINK"="https://github.com/zachreid-96/Prescribe_Scripting_Tool"
+    )
+    if "%~1"=="99" (
+        echo "Update"
+        set "tempSTR"="Check for Updated Version"
+        set "tempLINK"="https://github.com/zachreid-96/Cross-Over"
+    )
+    echo.
+    echo Enter ^(Y^) to open Github page to !tempSTR!
+    echo Enter ^(N^) to close the script
+    echo.
+    set /p "choice=Enter choice (Y/N): " || set "choice=N"
+
+    if /i "!choice!"=="Y" (
+        start "" !tempLINK!
+    ) else (
+        exit
+    )
 
 :: Here is the list of pre-programmed error codes
 :: This will be output as option 4 and can help identify what went wrong
@@ -188,7 +208,7 @@ set event_log_skip=0
 	set /p "ip=Enter IP Address: " || set "ip=0.0.0.0"
 	echo.
 	
-	:: If no IP is entered, a defualt 0.0.0.0 IP is set and the program will exit
+	:: If no IP is entered, a default 0.0.0.0 IP is set and the program will exit
 	if "%ip%"=="0.0.0.0" (
 		call :setDHCP_Error "[IP_NULL_INPUT_ERROR]"
 		exit
@@ -381,15 +401,8 @@ set event_log_skip=0
 			if %ERRORLEVEL%==0 (
 				echo.
 				echo.
-				if %event_log%==0 (
-					goto :cross_over_ready
-					exit
-				) else (
-					goto :print_event_log
-					exit
-				)
 			) else (
-				set /a attemp+=1
+				set /a attempt+=1
 				if %attempt%==25 (
 					call :setDHCP_Error "[MAX_PING_ATTEMPT_ERROR]"
 					exit
@@ -405,67 +418,6 @@ set event_log_skip=0
 		pause>nul | echo.
 		start "" https://%ip%
 		exit
-	
-
-:: This will print out a Kyocera Event Log on compatible devices
-:: Will first check if the specified file "event_log.txt" exists
-::    If not, it creates it and the directory if needed
-:: Then checks if LPR (Line Printer Remote) is enabled on PC
-::    If not, gives instructions on how to enable
-:: Then uses the ping timeout loop to test if the copier/printer is reachable via ping
-::    If not, calls :exit_error and displays error that LPR is enabled but cannot Ping Device
-::    Mostly a check when event_log_skip=1 is used which bypasses first ping timeout loop
-
-:print_event_log
-	
-	set newIp=!IPArr[0]!.!IPArr[1]!.!IPArr[2]!.!IPArr[3]!
-	set "file_path=%USERPROFILE%\Documents\event_log.txt"
-	set "dir_path=%USERPROFILE%\Documents"
-	
-	if not exist "%file_path%" (
-		if not exist %dir_path% (
-			mkdir %dir_path%
-		)
-		echo ^!R^!KCFG"ELOG";EXIT;>"%file_path%"
-	
-	where lpr >nul 2>&1
-	
-	if %ERRORLEVEL%==1 (
-		echo.
-		echo LPR is not enabled, please enable LPR...
-		echo   Turn Windows Features On or Off ^>
-		echo   Print and Document Services ^>
-		echo   LPR Port Monitor ^>
-		echo   Restart Device
-		call :exit_Error "[LPR_NOT_ENABLED_ERROR]"
-	) else (
-	
-		ping %newIP% -n 1 -w 1000 >nul 2>&1
-		
-		if %ERRORLEVEL%==1 (
-			call :exit_Error "[LPR_NO_PING_ERROR]"
-			exit
-		)
-		
-		lpr -S %newIp% -P 9100 "%file_path%"
-		<nul set /p "=Sending Event Log Command"
-			for /l %%i in (1,1,4) do (
-				<nul set /p "=."
-				timeout /t 1 >nul
-			)
-			echo .
-			timeout /t 1 >nul
-	)
-	
-	echo Event Log should be printing. Press any key to exit...
-	pause>nul | echo.
-	exit
-
-:exit_Error
-	echo.
-	echo %~1 Press any key to exit...
-	pause>nul | echo.
-	exit
 
 :: This sets the ethernet settings back to DHCP and outputs a passed error code
 
