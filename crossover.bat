@@ -357,21 +357,12 @@ set event_log_skip=0
 		exit
 	)
 	
-	set SUBNET_nope=0
-	
-	if !SUBNETArr[0]! leq 1 set SUBNET_nope=1
-	if !SUBNETArr[0]! gtr 255 set SUBNET_nope=1
-	if !SUBNETArr[1]! leq 0 set SUBNET_nope=1
-	if !SUBNETArr[1]! gtr 255 set SUBNET_nope=1
-	if !SUBNETArr[2]! leq 0 set SUBNET_nope=1
-	if !SUBNETArr[2]! gtr 255 set SUBNET_nope=1
-	if !SUBNETArr[3]! leq 0 set SUBNET_nope=1
-	if !SUBNETArr[3]! gtr 255 set SUBNET_nope=1
-	
-	if SUBNET_nope==1 (
-		call :setDHCP_Error "[SUBNET_INVALID_OCTET_ERROR]"
-		exit
-	)
+	set "valid_octets=0 128 192 224 240 248 252 254 255 "
+    for %%0 in (!SUBNETArr[0]! !SUBNETArr[1]! !SUBNETArr[2]! !SUBNETArr[3]!) do (
+    	set "octet=%%0"
+    	for /f "tokens=*" %%A in ("!octet!") do set "octet=%%A"
+    		echo !valid_octets! | findstr /c:"!octet!" >nul || call :setDHCP_Error "[SUBNET_INVALID_OCTET_ERROR]"
+    )
 	
 	goto :changeIP
 	exit
@@ -398,6 +389,7 @@ set event_log_skip=0
 		:confirm_ping_loop
 			<nul set /p "=."
 			ping %newIp% -n 1 -w 1000 >nul 2>&1
+			timeout /t 1 >nul
 			if %ERRORLEVEL%==0 (
 				echo.
 				echo.
