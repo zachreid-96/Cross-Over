@@ -33,7 +33,7 @@ if '%errorlevel%' NEQ '0' (
 
 :: Stylistic section of the program, turns echo off so these commands do not appear in CMD
 @echo off
-set version=3.2.1
+set version=3.2.2
 title IPv4 Copier Cross-Over by Zach (v%version%)
 setlocal EnableExtensions
 setlocal EnableDelayedExpansion

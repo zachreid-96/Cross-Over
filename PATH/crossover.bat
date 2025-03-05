@@ -1,5 +1,5 @@
 @echo off
-set version=3.2.1a
+set version=3.2.2a
 title IPv4 Copier Cross-Over by Zach (v%version%)
 
 :: Please see original crossover.bat for full comments
