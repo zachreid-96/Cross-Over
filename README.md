@@ -1,28 +1,109 @@
-# Cross-Over
-A simple cross-over batch script for Copiers, Printers, Switches and the like.
+# Crossover
 
-This project started off because I found that manually changing the Ethernet adapter settings a little tedious. I would often accidentally type in the copier's IP address instead of changing the last octet, or I would forget the Subnet. I wouldn't realize I made a mistake until I had closed all the settings and tried to open the copier's web page. Which failed. I would then waste more time opening the settings again and redoing them.
+![Batch](https://img.shields.io/badge/Platform-Windows%2010%2F11-blue?logo=windows)
+![Status](https://img.shields.io/badge/Status-Stable-brightgreen)
+![Used in Production](https://img.shields.io/badge/Used%20in%20Production-Weekly-success)
 
-This script was developed for Windows 10/11 machines. Will not work on other OS's and support for Windows 8.1 and prior, Mac, or any Linux distro will not be added.
+**Author:** Zach Reid | [zforgehub.dev](https://zforgehub.dev)
 
-I find using this script easy and pretty fast. I built in some checks to make sure IP/Subnet octets are within a valid range (0-255). I then match the copiers octets, changing the last octet to xxx.xxx.xxx.25, and use that as the IP assignment for the laptop. Unless the copiers last octet is xxx.xxx.xxx.25, then the laptop will be xxx.xxx.xxx.35.
+---
 
-This can be used for a handful of things, crossing over to copiers, printers, gateways, routers, switches, anything really that has a static IP assigned and allows data transfer between an ethernet cable.
+## Overview
 
-Before displaying a successful cross-over message, a ping timeout will occur to ensure network is active on both PC and machine. In case of bad IP entered, a max of 25 tries is allowed and results in a failed state.
+Crossover is a Windows batch script that automates the process of configuring a laptop's Ethernet adapter for direct crossover connections to copiers, printers, switches, routers, and other networked devices with static IP addresses.
 
-This script has a menu that gets output for the user. Below is a description of what each option does.
-1) Prompts the user for the copier's IP address and will change the IPv4 Ethernet assignments to allow cross-over to a copier. This option utilizes the default subnet of 255.255.255.0
-<br/> &emsp; Copier IP: 192.168.1.135 -> Laptop IP: 192.168.1.25 using 255.255.255.0 as Subnet
-2) Prompts the user for the copier's IP address, then prompts the user for the copier's Subnet
-<br/> &emsp; Copier IP: 192.168.1.25 Subnet: 255.255.254.12 -> Laptop IP: 192.168.1.35 Subnet: 255.255.254.12
-3) This will set the laptop's Ethernet assignments back to DHCP
-4) This will output the pre-programmed error codes, descriptions, and some examples. To be used for troubleshooting purposes.
-5) Print Event Log (no longer functional, moved to Prescribe_Scripting_Tool)
-99) This will bring the user to the GitHub main page of this project to check for a new version update. (not output in menu)
+Built out of a real frustration — manually navigating Windows network settings is slow, error-prone, and easy to get wrong at exactly the wrong moment. This script handles it in seconds with a simple CLI prompt.
 
-I put it in the comments of the script, but I will reiterate it here. I thank Ben Gripka and dbenham over at https://stackoverflow.com/questions/1894967/how-to-request-administrator-access-inside-a-batch-file for the code between the :: ------------------------------------- lines. I am not skilled enough to come up with prompting for the Admin UAC on my own.
+Used weekly in the field by multiple copier service technicians. One colleague described it as one of the most useful tools he's used on the job.
 
-The .bat file in ./PATH is meant to be loaded into a custom Scripts folder that is added to PATH. This can then be called via CMD without the need to navigate to the containing folder. This is also a 'stripped' down version of the original meaning there are no user prompts. Everything will need passed to the script via CLI calls.
+---
 
-Feel free to use this as needed.
+## The Problem It Solves
+
+When a field technician needs to connect directly to a device (crossing over), they have to manually change their laptop's Ethernet IPv4 settings to match the device's subnet — changing the last octet to avoid an IP conflict. It sounds simple, but in practice:
+
+- It's easy to accidentally type the device's IP instead of adjusting the last octet
+- The subnet mask is easy to forget, especially on non-standard networks
+- Mistakes aren't obvious until you've closed all the settings dialogs and tried to load the device's web page — only to find it fails
+- Then you have to open everything again and redo it
+
+This script eliminates all of that. Enter the device's IP, and it handles the rest — matching the subnet, calculating a safe laptop IP, applying the settings, and verifying the connection with a ping check before reporting success.
+
+---
+
+## Features
+
+- **Automatic IP calculation** — matches the device's subnet and sets the last octet to `.25` (or `.35` if the device is already on `.25`)
+- **Input validation** — checks all octets are within valid range (0–255) before applying anything
+- **Ping verification** — confirms network connectivity before reporting a successful crossover
+- **Max retry limit** — 25 attempts before reporting a failed state, preventing infinite loops on bad input
+- **DHCP restore** — one menu option to return the adapter back to automatic (DHCP) assignment
+- **Error code reference** — built-in error code lookup for on-the-spot troubleshooting
+- **PATH-friendly** — a stripped CLI version in `./PATH` can be added to your system PATH and called from any directory via CMD
+
+---
+
+## Menu Options
+
+| Option | Description |
+|---|---|
+| 1 | Crossover using device IP — uses default subnet `255.255.255.0` |
+| 2 | Crossover using device IP + custom subnet |
+| 3 | Restore Ethernet adapter to DHCP |
+| 4 | Display built-in error codes and troubleshooting reference |
+
+---
+
+## Usage Examples
+
+**Standard crossover (Option 1):**
+```
+Device IP:  192.168.1.135
+Laptop IP:  192.168.1.25  (subnet: 255.255.255.0)
+```
+
+**Last octet conflict handled automatically:**
+```
+Device IP:  192.168.1.25
+Laptop IP:  192.168.1.35  (subnet: 255.255.255.0)
+```
+
+**Custom subnet (Option 2):**
+```
+Device IP:  192.168.1.25   Subnet: 255.255.254.0
+Laptop IP:  192.168.1.35   Subnet: 255.255.254.0
+```
+
+---
+
+## PATH Version
+
+The script in `./PATH` is a stripped-down version designed to be placed in a custom Scripts folder added to your system PATH. It accepts all arguments via CLI without interactive prompts, allowing it to be called directly from CMD from any directory.
+
+---
+
+## Requirements
+
+- Windows 10 or Windows 11
+- Must be run with Administrator privileges (UAC prompt handled automatically)
+
+> Windows 8.1 and earlier, macOS, and Linux are not supported and will not be added.
+
+---
+
+## Attribution
+
+UAC elevation logic between the `:: -----` comment lines is credited to **Ben Gripka** and **dbenham** via [Stack Overflow](https://stackoverflow.com/questions/1894967/how-to-request-administrator-access-inside-a-batch-file).
+
+---
+
+## Status
+
+Stable. Used in active field deployment on a weekly basis. Occasional fixes applied as edge cases are discovered. No major feature additions planned — it does exactly what it needs to do.
+
+---
+
+## Links
+
+- 🌐 [zforgehub.dev](https://zforgehub.dev) — Portfolio & DevHub
+
